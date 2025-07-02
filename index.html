@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Data Manager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <style>
+        /* CSS will go here */
+        :root {
+            --primary-color: #4285f4;
+            --secondary-color: #34a853;
+            --danger-color: #ea4335;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-color);
+            color: white;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: var(--primary-color);
+            color: white;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        
+        tr:hover {
+            background-color: #e9e9e9;
+        }
+        
+        .editable {
+            outline: none;
+        }
+        
+        .editable:focus {
+            background-color: #fffde7;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-header h2 {
+            color: var(--primary-color);
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--dark-color);
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--dark-color);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1001;
+        }
+        
+        .toast.show {
+            opacity: 1;
+        }
+        
+        @media (max-width: 600px) {
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            button {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><i class="fas fa-file-excel"></i> Excel Data Manager</h1>
+        
+        <div class="toolbar">
+            <button class="btn-primary" id="newBtn">
+                <i class="fas fa-file"></i> New
+            </button>
+            <button class="btn-primary" id="addRowBtn">
+                <i class="fas fa-plus"></i> Add Row
+            </button>
+            <button class="btn-primary" id="addColBtn">
+                <i class="fas fa-plus"></i> Add Column
+            </button>
+            <button class="btn-secondary" id="importBtn">
+                <i class="fas fa-file-import"></i> Import
+            </button>
+            <button class="btn-secondary" id="exportBtn">
+                <i class="fas fa-file-export"></i> Export
+            </button>
+            <button class="btn-danger" id="clearBtn">
+                <i class="fas fa-trash"></i> Clear
+            </button>
+        </div>
+        
+        <div class="table-container">
+            <table id="dataTable">
+                <thead>
+                    <tr>
+                        <th>Column 1</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="editable" contenteditable="true"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- New File Modal -->
+    <div class="modal" id="newModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create New Table</h2>
+                <button class="close-btn" id="closeNewModal">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="rowCount">Number of Rows:</label>
+                <input type="number" id="rowCount" min="1" value="5">
+            </div>
+            <div class="form-group">
+                <label for="colCount">Number of Columns:</label>
+                <input type="number" id="colCount" min="1" value="3">
+            </div>
+            <div class="modal-footer">
+                <button class="btn-danger" id="cancelNewBtn">Cancel</button>
+                <button class="btn-primary" id="createNewBtn">Create</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Import Modal -->
+    <div class="modal" id="importModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Import Excel File</h2>
+                <button class="close-btn" id="closeImportModal">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="importFile">Select Excel File:</label>
+                <input type="file" id="importFile" accept=".xlsx, .xls, .csv">
+            </div>
+            <div class="modal-footer">
+                <button class="btn-danger" id="cancelImportBtn">Cancel</button>
+                <button class="btn-primary" id="confirmImportBtn">Import</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Export Modal -->
+    <div class="modal" id="exportModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Export to Excel</h2>
+                <button class="close-btn" id="closeExportModal">&times;</button>
+            </div>
+            <div class="form-group">
+                <label for="fileName">File Name:</label>
+                <input type="text" id="fileName" placeholder="Enter file name" value="data">
+            </div>
+            <div class="form-group">
+                <label for="fileType">File Type:</label>
+                <select id="fileType">
+                    <option value="xlsx">Excel (.xlsx)</option>
+                    <option value="csv">CSV (.csv)</option>
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-danger" id="cancelExportBtn">Cancel</button>
+                <button class="btn-primary" id="confirmExportBtn">Export</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+    
+    <script>
+        // JavaScript will go here
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const dataTable = document.getElementById('dataTable');
+            const newBtn = document.getElementById('newBtn');
+            const addRowBtn = document.getElementById('addRowBtn');
+            const addColBtn = document.getElementById('addColBtn');
+            const importBtn = document.getElementById('importBtn');
+            const exportBtn = document.getElementById('exportBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            
+            // Modal Elements
+            const newModal = document.getElementById('newModal');
+            const importModal = document.getElementById('importModal');
+            const exportModal = document.getElementById('exportModal');
+            
+            // Close buttons
+            const closeNewModal = document.getElementById('closeNewModal');
+            const closeImportModal = document.getElementById('closeImportModal');
+            const closeExportModal = document.getElementById('closeExportModal');
+            
+            // Modal action buttons
+            const cancelNewBtn = document.getElementById('cancelNewBtn');
+            const createNewBtn = document.getElementById('createNewBtn');
+            const cancelImportBtn = document.getElementById('cancelImportBtn');
+            const confirmImportBtn = document.getElementById('confirmImportBtn');
+            const cancelExportBtn = document.getElementById('cancelExportBtn');
+            const confirmExportBtn = document.getElementById('confirmExportBtn');
+            
+            // Toast
+            const toast = document.getElementById('toast');
+            
+            // Show modal functions
+            function showModal(modal) {
+                modal.style.display = 'flex';
+            }
+            
+            // Hide modal functions
+            function hideModal(modal) {
+                modal.style.display = 'none';
+            }
+            
+            // Show toast message
+            function showToast(message, duration = 3000) {
+                toast.textContent = message;
+                toast.classList.add('show');
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, duration);
+            }
+            
+            // Event listeners for showing modals
+            newBtn.addEventListener('click', () => showModal(newModal));
+            importBtn.addEventListener('click', () => showModal(importModal));
+            exportBtn.addEventListener('click', () => showModal(exportModal));
+            
+            // Event listeners for closing modals
+            closeNewModal.addEventListener('click', () => hideModal(newModal));
+            closeImportModal.addEventListener('click', () => hideModal(importModal));
+            closeExportModal.addEventListener('click', () => hideModal(exportModal));
+            
+            cancelNewBtn.addEventListener('click', () => hideModal(newModal));
+            cancelImportBtn.addEventListener('click', () => hideModal(importModal));
+            cancelExportBtn.addEventListener('click', () => hideModal(exportModal));
+            
+            // Create new table
+            createNewBtn.addEventListener('click', function() {
+                const rowCount = parseInt(document.getElementById('rowCount').value);
+                const colCount = parseInt(document.getElementById('colCount').value);
+                
+                if (rowCount > 0 && colCount > 0) {
+                    createNewTable(rowCount, colCount);
+                    hideModal(newModal);
+                    showToast('New table created successfully!');
+                } else {
+                    showToast('Please enter valid row and column counts');
+                }
+            });
+            
+            // Function to create a new table
+            function createNewTable(rows, cols) {
+                // Create header row
+                let headerRow = '<tr>';
+                for (let i = 1; i <= cols; i++) {
+                    headerRow += `<th>Column ${i}</th>`;
+                }
+                headerRow += '</tr>';
+                
+                // Create data rows
+                let tableBody = '';
+                for (let i = 0; i < rows; i++) {
+                    tableBody += '<tr>';
+                    for (let j = 0; j < cols; j++) {
+                        tableBody += '<td class="editable" contenteditable="true"></td>';
+                    }
+                    tableBody += '</tr>';
+                }
+                
+                // Update the table
+                dataTable.innerHTML = '<thead>' + headerRow + '</thead><tbody>' + tableBody + '</tbody>';
+            }
+            
+            // Add new row
+            addRowBtn.addEventListener('click', function() {
+                const tbody = dataTable.querySelector('tbody');
+                if (!tbody) return;
+                
+                const cols = dataTable.querySelector('thead tr').cells.length;
+                let newRow = '<tr>';
+                
+                for (let i = 0; i < cols; i++) {
+                    newRow += '<td class="editable" contenteditable="true"></td>';
+                }
+                newRow += '</tr>';
+                
+                tbody.insertAdjacentHTML('beforeend', newRow);
+                showToast('New row added successfully!');
+            });
+            
+            // Add new column
+            addColBtn.addEventListener('click', function() {
+                const headerRow = dataTable.querySelector('thead tr');
+                if (!headerRow) return;
+                
+                const colNumber = headerRow.cells.length + 1;
+                headerRow.insertAdjacentHTML('beforeend', `<th>Column ${colNumber}</th>`);
+                
+                const rows = dataTable.querySelectorAll('tbody tr');
+                rows.forEach(row => {
+                    row.insertAdjacentHTML('beforeend', '<td class="editable" contenteditable="true"></td>');
+                });
+                
+                showToast('New column added successfully!');
+            });
+            
+            // Clear table
+            clearBtn.addEventListener('click', function() {
+                if (confirm('Are you sure you want to clear the table? All data will be lost.')) {
+                    createNewTable(1, 1);
+                    showToast('Table cleared successfully!');
+                }
+            });
+            
+            // Import Excel file
+            confirmImportBtn.addEventListener('click', function() {
+                const fileInput = document.getElementById('importFile');
+                if (fileInput.files.length === 0) {
+                    showToast('Please select a file to import');
+                    return;
+                }
+                
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        // For Android implementation, we'll use the WebView bridge
+                        if (window.Android) {
+                            window.Android.importExcel(file.name, e.target.result);
+                        } else {
+                            // Fallback for browser testing
+                            showToast('Import functionality requires Android app');
+                        }
+                    } catch (error) {
+                        showToast('Error importing file: ' + error.message);
+                    }
+                };
+                
+                reader.onerror = function() {
+                    showToast('Error reading file');
+                };
+                
+                if (file.name.endsWith('.csv')) {
+                    reader.readAsText(file);
+                } else {
+                    reader.readAsArrayBuffer(file);
+                }
+                
+                hideModal(importModal);
+            });
+            
+            // Export to Excel
+            confirmExportBtn.addEventListener('click', function() {
+                const fileName = document.getElementById('fileName').value || 'data';
+                const fileType = document.getElementById('fileType').value;
+                
+                // Get table data
+                const headers = [];
+                const data = [];
+                
+                // Get headers
+                const headerCells = dataTable.querySelectorAll('thead th');
+                headerCells.forEach(cell => {
+                    headers.push(cell.textContent);
+                });
+                
+                // Get rows
+                const rows = dataTable.querySelectorAll('tbody tr');
+                rows.forEach(row => {
+                    const rowData = [];
+                    const cells = row.querySelectorAll('td');
+                    cells.forEach(cell => {
+                        rowData.push(cell.textContent);
+                    });
+                    data.push(rowData);
+                });
+                
+                // For Android implementation, we'll use the WebView bridge
+                if (window.Android) {
+                    window.Android.exportExcel(fileName, fileType, JSON.stringify(headers), JSON.stringify(data));
+                } else {
+                    // Fallback for browser testing
+                    console.log('Export data:', {fileName, fileType, headers, data});
+                    showToast('Export functionality requires Android app');
+                }
+                
+                hideModal(exportModal);
+            });
+            
+            // Initialize with a default table
+            createNewTable(5, 3);
+        });
+    </script>
+</body>
+</html>
